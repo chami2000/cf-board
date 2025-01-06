@@ -34,6 +34,7 @@ jobs:
           else
             echo "No last_version.txt file found. Creating one."
             echo "none" > last_version.txt
+          fi
 
       # Step 3: Compare the latest release with last_version.txt
       - name: Check if new release is available
