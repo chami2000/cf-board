@@ -1,0 +1,72 @@
+name: Sync Latest Release
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch:      # Allow manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Get latest release info
+        id: release
+        run: |
+          RELEASE_INFO=$(curl -s https://api.github.com/repos/Zephyruso/zashboard/releases/latest)
+          echo "RELEASE_TAG=$(echo $RELEASE_INFO | jq -r .tag_name)" >> $GITHUB_ENV
+          echo "DOWNLOAD_URL=$(echo $RELEASE_INFO | jq -r '.assets[] | select(.name=="dist.zip") | .browser_download_url')" >> $GITHUB_ENV
+          
+      - name: Check last processed version
+        id: check_version
+        run: |
+          if [ ! -f last_version.txt ]; then
+            echo "none" > last_version.txt
+          fi
+          LAST_VERSION=$(cat last_version.txt)
+          echo "LAST_VERSION=$LAST_VERSION" >> $GITHUB_ENV
+          if [ "$LAST_VERSION" == "${{ env.RELEASE_TAG }}" ]; then
+            echo "NO_UPDATE=true" >> $GITHUB_ENV
+          fi
+          
+      - name: Download and extract release
+        if: env.NO_UPDATE != 'true'
+        run: |
+          curl -L "${{ env.DOWNLOAD_URL }}" -o dist.zip
+          mkdir -p temp_dist
+          unzip dist.zip -d temp_dist
+          
+      - name: Clean existing files
+        if: env.NO_UPDATE != 'true'
+        run: |
+          # Create a list of files to preserve
+          echo ".github/" > preserve.txt
+          echo "last_version.txt" >> preserve.txt
+          
+          # Remove all files except those in preserve.txt
+          find . -maxdepth 1 -type f ! -name "$(paste -sd '\|' preserve.txt)" -delete
+          find . -maxdepth 1 -type d ! -name ".*" ! -name "temp_dist" -exec rm -rf {} +
+          
+      - name: Move files to root
+        if: env.NO_UPDATE != 'true'
+        run: |
+          # Move files from the inner dist directory to root
+          mv temp_dist/dist/* .
+          rm -rf temp_dist
+          
+      - name: Update version file
+        if: env.NO_UPDATE != 'true'
+        run: |
+          echo "${{ env.RELEASE_TAG }}" > last_version.txt
+          
+      - name: Commit and push changes
+        if: env.NO_UPDATE != 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "Sync latest release ${{ env.RELEASE_TAG }}"
+          git push
