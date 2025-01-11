@@ -23,10 +23,10 @@ jobs:
       - name: Check last processed version
         id: check_version
         run: |
-          if [ ! -f last_version.txt ]; then
-            echo "none" > last_version.txt
+          if [ ! -f README.md ]; then
+            echo "none" > README.md
           fi
-          LAST_VERSION=$(cat last_version.txt)
+          LAST_VERSION=$(cat README.md)
           echo "LAST_VERSION=$LAST_VERSION" >> $GITHUB_ENV
           if [ "$LAST_VERSION" == "${{ env.RELEASE_TAG }}" ]; then
             echo "NO_UPDATE=true" >> $GITHUB_ENV
@@ -44,7 +44,7 @@ jobs:
         run: |
           # Create a list of files to preserve
           echo ".github/" > preserve.txt
-          echo "last_version.txt" >> preserve.txt
+          echo "README.md" >> preserve.txt
           
           # Remove all files except those in preserve.txt
           find . -maxdepth 1 -type f ! -name "$(paste -sd '\|' preserve.txt)" -delete
@@ -60,7 +60,7 @@ jobs:
       - name: Update version file
         if: env.NO_UPDATE != 'true'
         run: |
-          echo "${{ env.RELEASE_TAG }}" > last_version.txt
+          echo "${{ env.RELEASE_TAG }}" > README.md
           
       - name: Commit and push changes
         if: env.NO_UPDATE != 'true'
