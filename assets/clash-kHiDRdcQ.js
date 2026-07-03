@@ -1,0 +1,1 @@
+import{aQ as o,aR as u,aO as c,aP as i}from"./index-BCOugEZS.js";const n=async()=>{const{data:r}=await o(),{data:e}=await u();c.value=r.rules.map(t=>{const a=t.proxy,s=a.startsWith("route(")?a.substring(6,a.length-1):a;return{...t,proxy:s}}),i.value=Object.values(e.providers)};export{n as fetchRules};
